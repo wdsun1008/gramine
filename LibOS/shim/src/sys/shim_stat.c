@@ -18,6 +18,8 @@
 #include "stat.h"
 
 static int do_stat(struct shim_dentry* dent, struct stat* stat) {
+    assert(locked(&g_dcache_lock));
+
     struct shim_fs* fs = dent->fs;
 
     if (!fs || !fs->d_ops || !fs->d_ops->stat)
@@ -59,11 +61,16 @@ long shim_do_stat(const char* file, struct stat* stat) {
     int ret;
     struct shim_dentry* dent = NULL;
 
-    if ((ret = path_lookupat(/*start=*/NULL, file, LOOKUP_FOLLOW, &dent)) < 0)
-        return ret;
+    lock(&g_dcache_lock);
+    ret = path_lookupat(/*start=*/NULL, file, LOOKUP_FOLLOW, &dent);
+    if (ret < 0)
+        goto out;
 
     ret = do_stat(dent, stat);
-    put_dentry(dent);
+out:
+    unlock(&g_dcache_lock);
+    if (dent)
+        put_dentry(dent);
     return ret;
 }
 
@@ -77,11 +84,16 @@ long shim_do_lstat(const char* file, struct stat* stat) {
     int ret;
     struct shim_dentry* dent = NULL;
 
-    if ((ret = path_lookupat(/*start=*/NULL, file, LOOKUP_NO_FOLLOW, &dent)) < 0)
-        return ret;
+    lock(&g_dcache_lock);
+    ret = path_lookupat(/*start=*/NULL, file, LOOKUP_NO_FOLLOW, &dent);
+    if (ret < 0)
+        goto out;
 
     ret = do_stat(dent, stat);
-    put_dentry(dent);
+out:
+    unlock(&g_dcache_lock);
+    if (dent)
+        put_dentry(dent);
     return ret;
 }
 
@@ -114,7 +126,9 @@ long shim_do_readlinkat(int dirfd, const char* file, char* buf, int bufsize) {
     if (*file != '/' && (ret = get_dirfd_dentry(dirfd, &dir)) < 0)
         goto out;
 
-    if ((ret = path_lookupat(dir, file, LOOKUP_NO_FOLLOW, &dent)) < 0)
+    lock(&g_dcache_lock);
+    ret = path_lookupat(dir, file, LOOKUP_NO_FOLLOW, &dent);
+    if (ret < 0)
         goto out;
 
     ret = -EINVAL;
@@ -138,6 +152,7 @@ long shim_do_readlinkat(int dirfd, const char* file, char* buf, int bufsize) {
 
     memcpy(buf, target, ret);
 out:
+    unlock(&g_dcache_lock);
     if (dent) {
         put_dentry(dent);
     }
@@ -176,7 +191,10 @@ long shim_do_statfs(const char* path, struct statfs* buf) {
     int ret;
     struct shim_dentry* dent = NULL;
 
-    if ((ret = path_lookupat(/*start=*/NULL, path, LOOKUP_FOLLOW, &dent)) < 0)
+    lock(&g_dcache_lock);
+    ret = path_lookupat(/*start=*/NULL, path, LOOKUP_FOLLOW, &dent);
+    unlock(&g_dcache_lock);
+    if (ret < 0)
         return ret;
 
     struct shim_mount* mount = dent->mount;
@@ -242,6 +260,7 @@ long shim_do_newfstatat(int dirfd, const char* pathname, struct stat* statbuf, i
     }
 
     struct shim_dentry* dent = NULL;
+    lock(&g_dcache_lock);
     ret = path_lookupat(dir, pathname, lookup_flags, &dent);
     if (ret >= 0) {
         struct shim_d_ops* d_ops = dent->fs->d_ops;
@@ -251,6 +270,7 @@ long shim_do_newfstatat(int dirfd, const char* pathname, struct stat* statbuf, i
             ret = -EACCES;
         put_dentry(dent);
     }
+    unlock(&g_dcache_lock);
     if (dir)
         put_dentry(dir);
     return ret;
