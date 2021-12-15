@@ -37,7 +37,7 @@ static MEM_MGR handle_mgr = NULL;
 
 static int init_tty_handle(struct shim_handle* hdl, bool write) {
     int flags = write ? (O_WRONLY | O_APPEND) : O_RDONLY;
-    return open_namei(hdl, /*start=*/NULL, "/dev/tty", LOOKUP_FOLLOW, flags, /*found=*/NULL);
+    return open_namei(hdl, /*start=*/NULL, "/dev/tty", flags, LOOKUP_FOLLOW, /*found=*/NULL);
 }
 
 int open_executable(struct shim_handle* hdl, const char* path) {
