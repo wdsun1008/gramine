@@ -318,8 +318,9 @@ static int tcp_accept(PAL_HANDLE handle, PAL_HANDLE* client, pal_stream_options_
     if (ret < 0)
         return unix_to_pal_error(ret);
 
-    struct sockopt sock_options = { 0 };
-    sock_options.reuseaddr = 1; /* sockets are always set as reusable in Gramine */
+    struct sockopt sock_options = {
+        .reuseaddr = 1, /* sockets are always set as reusable in Gramine */
+    };
 
     *client = socket_create_handle(PAL_TYPE_TCP, ret, options, bind_addr, bind_addrlen,
                                    (struct sockaddr*)&dest_addr, dest_addrlen, &sock_options);
