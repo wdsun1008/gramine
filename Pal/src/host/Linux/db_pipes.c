@@ -93,6 +93,7 @@ static int pipe_listen(PAL_HANDLE* handle, const char* name, pal_stream_options_
  *
  * \param[in]  handle  PAL handle of type `pipesrv` with abstract UNIX socket opened for listening.
  * \param[out] client  PAL handle of type `pipecli` connected to the other end of the pipe (`pipe`).
+ * \param      options flags to set on \p client handle.
  * \return             0 on success, negative PAL error code otherwise.
  */
 static int pipe_waitforclient(PAL_HANDLE handle, PAL_HANDLE* client, pal_stream_options_t options) {

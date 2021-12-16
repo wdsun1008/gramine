@@ -140,7 +140,7 @@ static int pipe_waitforclient(PAL_HANDLE handle, PAL_HANDLE* client, pal_stream_
     HANDLE_HDR(clnt)->flags |= RFD(0) | WFD(0);
     clnt->pipe.fd          = ret;
     clnt->pipe.name        = handle->pipe.name;
-    clnt->pipe.nonblocking = !!(flags & SOCK_CLOEXEC);
+    clnt->pipe.nonblocking = !!(flags & SOCK_NONBLOCK);
 
     /* create the SSL pre-shared key for this end of the pipe; note that SSL context is initialized
      * lazily on first read/write on this pipe */
