@@ -262,8 +262,6 @@ long shim_do_newfstatat(int dirfd, const char* pathname, struct stat* statbuf, i
         /* Do nothing as automount isn't supported */
         log_warning("newfstatat: ignoring AT_NO_AUTOMOUNT.");
     }
-    if (!*pathname && !(flags & AT_EMPTY_PATH))
-        return -ENOENT;
 
     if (!*pathname) {
         if (!(flags & AT_EMPTY_PATH))
