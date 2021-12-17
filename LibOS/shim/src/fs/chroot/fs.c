@@ -285,10 +285,7 @@ out:
     return ret;
 }
 
-static int chroot_creat(struct shim_handle* hdl, struct shim_dentry* dir, struct shim_dentry* dent,
-                        int flags, mode_t perm) {
-    __UNUSED(dir);
-
+static int chroot_creat(struct shim_handle* hdl, struct shim_dentry* dent, int flags, mode_t perm) {
     assert(locked(&g_dcache_lock));
 
     int ret;

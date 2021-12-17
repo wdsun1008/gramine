@@ -113,6 +113,15 @@ struct fs_lock_info;
 DEFINE_LIST(shim_dentry);
 DEFINE_LISTP(shim_dentry);
 struct shim_dentry {
+    /*
+     * TODO: Concurrent access to dentry objects is currently inconsistent and broken. The dentry
+     * tree structure, i.e. children/siblings, is protected by `g_dcache_lock`, but many fields are
+     * accessed without any locks.
+     *
+     * The end goal is to move some fields to `shim_inode`, and use `g_dcache_lock` for all
+     * remaining mutable fields.
+     */
+
     int state; /* flags for managing state */
 
     /* File name, maximum of NAME_MAX characters. By convention, the root has an empty name. Does
@@ -236,27 +245,26 @@ struct shim_d_ops {
      * \brief Create and open a new regular file
      *
      * \param hdl a newly created handle
-     * \param dent dentry, valid and negative
+     * \param dent dentry, valid and negative (file to be created)
      * \param flags open flags, including access mode (O_RDONLY / O_WRONLY / O_RDWR)
      * \param perm permissions of the new file
      *
-     * Creates and opens a new regular file. On success, prepares the handle and the dentry for use
-     * by the filesystem (as in `open` and `lookup`).
+     * Creates and opens a new regular file at path described by `dent`. On success, prepares the
+     * handle and the dentry for use by the filesystem (as in `open` and `lookup`).
      *
      * The caller should hold `g_dcache_lock`. On success, the caller should finish preparing the
      * handle and the dentry (as in `open` and `lookup`).
      */
-    int (*creat)(struct shim_handle* hdl, struct shim_dentry* dir, struct shim_dentry* dent,
-                 int flags, mode_t mode);
+    int (*creat)(struct shim_handle* hdl, struct shim_dentry* dent, int flags, mode_t perm);
 
     /*
      * \brief Create a directory
      *
-     * \param dent dentry, valid and negative
+     * \param dent dentry, valid and negative (directory to be created)
      * \param perm permissions of the new directory
      *
-     * Creates a new directory. On success, prepares the dentry for use by the filesystem (as in
-     * `lookup`).
+     * Creates a new directory at path described by `dent`. On success, prepares the dentry for use
+     * by the filesystem (as in `lookup`).
      *
      * The caller should hold `g_dcache_lock`. On success, the caller should finish preparing the
      * dentry (as in `lookup`).
@@ -268,8 +276,8 @@ struct shim_d_ops {
      *
      * \param dent dentry, valid and non-negative, must have a parent
      *
-     * Unlinks a file under `dent`. Note that there might be handles for that file; if possible,
-     * they should still work.
+     * Unlinks a file described by `dent`. Note that there might be handles for that file; if
+     * possible, they should still work.
      *
      * The caller should hold `g_dcache_lock`. On success, the caller should update the dentry to be
      * negative.
@@ -279,7 +287,8 @@ struct shim_d_ops {
     /*
      * \brief Get file status
      *
-     * \param dentry, valid and non-negative
+     * \param dent dentry, valid and non-negative
+     * \param buf status buffer to fill
      *
      * Fills `buf` with information about a file. Omits `st_ino` (which is later filled by the
      * caller).
@@ -292,7 +301,7 @@ struct shim_d_ops {
      * \brief Extract the target of a symbolic link
      *
      * \param dent dentry, valid and non-negative, describing a symlink
-     * \param[out] out_target on success, contains link target
+     * \param out_target on success, contains link target
      *
      * Determines the target of a symbolic link, and sets `*out_target` to an allocated string.
      *
@@ -318,11 +327,11 @@ struct shim_d_ops {
      * \param old source dentry, valid and non-negative
      * \param new target dentry, valid, can be negative or non-negative
      *
-     * Renames a file under `old` to the path described by `new`. Updates the fields of `new` (same
-     * as `lookup`).
+     * Moves a file described by `old` to the path described by `new`. Updates the fields of `new`
+     * (same as `lookup`).
      *
-     * Note that the file under `new` might exist, in which case the rename operation will unlink
-     * it.
+     * Note that the file described by `new` might exist, in which case the rename operation will
+     * unlink it.
      *
      * The caller should hold `g_dcache_lock`. On success, the caller should mark the old dentry as
      * negative, and the new dentry as non-negative.
@@ -332,7 +341,7 @@ struct shim_d_ops {
     /*!
      * \brief List all files in the directory
      *
-     * \param dentry the dentry, must be valid, non-negative and describing a directory
+     * \param dent the dentry, must be valid, non-negative and describing a directory
      * \param callback the callback to invoke on each file name
      * \param arg argument to pass to the callback
      *

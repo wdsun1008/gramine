@@ -96,10 +96,7 @@ static int tmpfs_open(struct shim_handle* hdl, struct shim_dentry* dent, int fla
     return 0;
 }
 
-static int tmpfs_creat(struct shim_handle* hdl, struct shim_dentry* dir, struct shim_dentry* dent,
-                       int flags, mode_t perm) {
-    __UNUSED(dir);
-
+static int tmpfs_creat(struct shim_handle* hdl, struct shim_dentry* dent, int flags, mode_t perm) {
     int ret;
 
     /* Trigger creating dentry data to ensure right timestamp. */

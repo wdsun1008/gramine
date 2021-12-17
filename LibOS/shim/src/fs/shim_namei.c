@@ -571,7 +571,7 @@ int open_namei(struct shim_handle* hdl, struct shim_dentry* start, const char* p
                 ret = -EINVAL;
                 goto err;
             }
-            ret = dir->fs->d_ops->creat(hdl, dir, dent, flags, mode & ~S_IFMT);
+            ret = dir->fs->d_ops->creat(hdl, dent, flags, mode & ~S_IFMT);
             if (ret < 0)
                 goto err;
             dent->state &= ~DENTRY_NEGATIVE;
