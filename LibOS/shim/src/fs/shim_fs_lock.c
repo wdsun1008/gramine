@@ -12,7 +12,7 @@
 
 /*
  * Global lock for the whole subsystem. Protects access to `g_fs_lock_list`, and also to dentry
- * fields (`fs_lock and `maybe_has_fs_locks`).
+ * fields (`fs_lock` and `maybe_has_fs_locks`).
  */
 static struct shim_lock g_fs_lock_lock;
 
