@@ -759,7 +759,7 @@ static int vdso_map_init(void) {
     }
 
     ret = DkVirtualMemoryAlloc(&addr, ALLOC_ALIGN_UP(vdso_so_size), /*alloc_type=*/0,
-                               PAL_PROT_READ | PAL_PROT_WRITE);
+                               PAL_PROT_READ | PAL_PROT_WRITE | PAL_PROT_EXEC);
     if (ret < 0) {
         return pal_to_unix_errno(ret);
     }

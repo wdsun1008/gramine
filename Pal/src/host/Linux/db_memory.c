@@ -19,6 +19,7 @@
 #include "pal_linux_error.h"
 #include "spinlock.h"
 
+#define __NR_memfd_secret 447
 /* Internal-PAL memory is allocated in range [g_pal_internal_mem_addr, g_pal_internal_mem_size).
  * This range is "preloaded" (LibOS is notified that it cannot use this range), so there can be no
  * overlap between LibOS and internal-PAL allocations.
@@ -63,13 +64,29 @@ int _DkVirtualMemoryAlloc(void** paddr, size_t size, pal_alloc_flags_t alloc_typ
     }
 
     assert(addr);
-
-    int flags = PAL_MEM_FLAGS_TO_LINUX(alloc_type, prot | PAL_PROT_WRITECOPY);
+    int flags;
     int linux_prot = PAL_PROT_TO_LINUX(prot);
-
-    flags |= MAP_ANONYMOUS | MAP_FIXED;
-    addr = (void*)DO_SYSCALL(mmap, addr, size, linux_prot, flags, -1, 0);
-
+    if (alloc_type & PAL_ALLOC_EXEC || prot & PAL_PROT_EXEC) {
+        flags = PAL_MEM_FLAGS_TO_LINUX(alloc_type, prot | PAL_PROT_WRITECOPY);
+        flags |= MAP_ANONYMOUS | MAP_FIXED;
+        addr = (void*)DO_SYSCALL(mmap, addr, size, linux_prot, flags, -1, 0);
+    } else {
+        flags = PAL_SECMEM_FLAGS_TO_LINUX(alloc_type, prot | PAL_PROT_WRITECOPY);
+        flags |= MAP_FIXED;
+        int fd = DO_SYSCALL(memfd_secret, 0);
+        if (fd < 0) {
+            log_error("memfd_secret failed");
+            return unix_to_pal_error(fd);
+        }
+        int ret = DO_SYSCALL(ftruncate, fd, size);
+        if (ret != 0) {
+            log_error("ftruncate failed");
+            return unix_to_pal_error(ret);
+        }
+        addr = (void*)DO_SYSCALL(mmap, addr, size, linux_prot, flags, fd, 0);
+        log_always("secretmem alloc: %p", addr);
+    }
+    
     if (IS_PTR_ERR(addr)) {
         /* note that we don't undo operations on `g_pal_internal_mem_used` in case of internal-PAL
          * allocations: this could lead to data races, so we just waste some memory on errors */
@@ -82,6 +99,7 @@ int _DkVirtualMemoryAlloc(void** paddr, size_t size, pal_alloc_flags_t alloc_typ
 
 int _DkVirtualMemoryFree(void* addr, size_t size) {
     int ret = DO_SYSCALL(munmap, addr, size);
+    log_always("secretmem frees: %p", addr);
     return ret < 0 ? unix_to_pal_error(ret) : 0;
 }
 
