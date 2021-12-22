@@ -402,7 +402,7 @@ static long sgx_ocall_accept(void* pms) {
     }
     int addrlen = ms->ms_addrlen;
     int options = ms->options | SOCK_CLOEXEC;
-    assert(!(options & ~(SOCK_CLOEXEC | SOCK_NONBLOCK)));
+    assert(WITHIN_MASK(options, SOCK_CLOEXEC | SOCK_NONBLOCK));
 
     ret = DO_SYSCALL_INTERRUPTIBLE(accept4, ms->ms_sockfd, ms->ms_addr, &addrlen, options);
     if (ret < 0)
