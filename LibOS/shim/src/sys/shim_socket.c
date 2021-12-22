@@ -883,7 +883,7 @@ out:
 }
 
 static int __do_accept(struct shim_handle* hdl, int flags, struct sockaddr* addr, int* addrlen) {
-    assert(!(flags & ~(O_CLOEXEC | O_NONBLOCK)));
+    assert(WITHIN_MASK(flags, O_CLOEXEC | O_NONBLOCK));
 
     if (hdl->type != TYPE_SOCK)
         return -ENOTSOCK;
