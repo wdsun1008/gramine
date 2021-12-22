@@ -66,7 +66,7 @@ int _DkVirtualMemoryAlloc(void** paddr, size_t size, pal_alloc_flags_t alloc_typ
     assert(addr);
     int flags;
     int linux_prot = PAL_PROT_TO_LINUX(prot);
-    if (alloc_type & PAL_ALLOC_EXEC || prot & PAL_PROT_EXEC) {
+    if (prot & PAL_PROT_EXEC) {
         flags = PAL_MEM_FLAGS_TO_LINUX(alloc_type, prot | PAL_PROT_WRITECOPY);
         flags |= MAP_ANONYMOUS | MAP_FIXED;
         addr = (void*)DO_SYSCALL(mmap, addr, size, linux_prot, flags, -1, 0);
@@ -84,7 +84,6 @@ int _DkVirtualMemoryAlloc(void** paddr, size_t size, pal_alloc_flags_t alloc_typ
             return unix_to_pal_error(ret);
         }
         addr = (void*)DO_SYSCALL(mmap, addr, size, linux_prot, flags, fd, 0);
-        log_always("secretmem alloc: %p", addr);
     }
     
     if (IS_PTR_ERR(addr)) {
@@ -99,7 +98,6 @@ int _DkVirtualMemoryAlloc(void** paddr, size_t size, pal_alloc_flags_t alloc_typ
 
 int _DkVirtualMemoryFree(void* addr, size_t size) {
     int ret = DO_SYSCALL(munmap, addr, size);
-    log_always("secretmem frees: %p", addr);
     return ret < 0 ? unix_to_pal_error(ret) : 0;
 }
 
