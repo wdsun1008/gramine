@@ -71,7 +71,7 @@ int _DkVirtualMemoryAlloc(void** paddr, size_t size, pal_alloc_flags_t alloc_typ
         flags |= MAP_ANONYMOUS | MAP_FIXED;
         addr = (void*)DO_SYSCALL(mmap, addr, size, linux_prot, flags, -1, 0);
     } else {
-        flags = PAL_SECMEM_FLAGS_TO_LINUX(alloc_type, prot | PAL_PROT_WRITECOPY);
+        flags = PAL_SECMEM_FLAGS_TO_LINUX(alloc_type);
         flags |= MAP_FIXED;
         int fd = DO_SYSCALL(memfd_secret, 0);
         if (fd < 0) {
