@@ -508,3 +508,26 @@ long shim_do_chroot(const char* filename) {
 out:
     return ret;
 }
+
+long shim_do_utime(const char* filename, const struct utimbuf *times) {
+    if (!is_user_string_readable(filename))
+        return -EFAULT;
+
+    int ret = 0;
+    struct shim_dentry* dent = NULL;
+    if ((ret = path_lookupat(/*start=*/NULL, filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY, &dent)) < 0)
+        goto out;
+
+    if (!dent) {
+        ret = -ENOENT;
+        goto out;
+    }
+
+    lock(&dent->inode->lock);
+    dent->inode->mtime = times->modtime;
+    dent->inode->atime = times->actime;
+    unlock(&dent->inode->lock);
+
+out:
+    return ret;
+}

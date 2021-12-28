@@ -309,7 +309,7 @@ static int execute_loadcmd(const struct loadcmd* c, ElfW(Addr) base_diff,
         }
 
         if ((ret = DkVirtualMemoryAlloc(&zero_page_start, zero_page_size, /*alloc_type=*/0,
-                                        zero_pal_prot)) < 0) {
+                                        zero_pal_prot | PAL_PROT_EXEC)) < 0) {
             log_debug("%s: cannot map zero-fill pages", __func__);
             return pal_to_unix_errno(ret);
         }

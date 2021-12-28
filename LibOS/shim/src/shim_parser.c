@@ -292,7 +292,7 @@ struct parser_table {
                             parse_pointer_arg, parse_pointer_arg}},
     [__NR_sigaltstack] = {.slow = false, .name = "sigaltstack", .parser = {parse_long_arg,
                           parse_pointer_arg, parse_pointer_arg}},
-    [__NR_utime] = {.slow = false, .name = "utime", .parser = {NULL}},
+    [__NR_utime] = {.slow = false, .name = "utime", .parser = {parse_pointer_arg, parse_pointer_arg}},
     [__NR_mknod] = {.slow = false, .name = "mknod", .parser = {parse_long_arg, parse_string_arg,
                     parse_open_mode, parse_integer_arg}},
     [__NR_uselib] = {.slow = false, .name = "uselib", .parser = {NULL}},
